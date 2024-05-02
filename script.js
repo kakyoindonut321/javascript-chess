@@ -94,9 +94,13 @@ class Chess extends Board {
     constructor(displaysquares = false, position = true) {
         super(8, 8);
 
+        // additional display
+        this.turndisplay = document.querySelector(".turn");
+
         this.activatedpawn = [];
         this.eaten = [];
         this.displaysquares = displaysquares;
+        this.position = position;
 
         if (position) {
             this.array = [
@@ -111,17 +115,16 @@ class Chess extends Board {
             ];
         } else {
             this.array = [
-                ["wr", "wn", "wb", "wq", "wk", "wb", "wn", "wr"],
+                ["wr", "wn", "wb", "wk", "wq", "wb", "wn", "wr"],
                 ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
                 [0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0],
                 ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
-                ["br", "bn", "bb", "bq", "bk", "bb", "bn", "br"],
+                ["br", "bn", "bb", "bk", "bq", "bb", "bn", "br"],
             ];
         }
-        2
     }
 
     display() {
@@ -129,11 +132,24 @@ class Chess extends Board {
             console.log("ERROR, reference the display object first");
             return;
         }
+        this.turndisplay.textContent = (turn) ? "white to move" : "black to move";
+
         for (let squarec of this.displaysquares) {
             let srow = squarec.getAttribute("row");
             let scol = squarec.getAttribute("col");
 
-            let piecevalue = this.array[srow][scol]
+            let piecevalue = this.array[srow][scol];
+            // let piecevalue;
+            // if (this.position) {
+            //     piecevalue = this.array[srow][scol];
+            // } else {
+            //     let arraycopy = [...this.array];
+            //     for (let eacharr of arraycopy) {
+            //         eacharr.reverse();
+            //     }
+            //     arraycopy.reverse();
+            //     piecevalue = arraycopy[srow][scol];
+            // }
 
             squarec.value = piecevalue;
             squarec.value = (squarec.value != "0") ? squarec.value : "";
@@ -166,14 +182,14 @@ class Chess extends Board {
             return false;
         }
         if (this.validpos(firstcor, seccor, piece, direction)) {
-            if (this.maxtrajectory(firstcor, seccor, piece, direction)) {
+            if (this.maxtrajectory(firstcor, seccor, piece)) {
                 if (!this.eat(seccor, direction)) {
                     console.log("can't eat your ally");
                     return false;
                 }
                 this.move(firstcor, seccor);
-                this.display();
                 turn = !turn;
+                this.display();
                 return true;
             } else {
                 console.log("blocked");
@@ -185,7 +201,7 @@ class Chess extends Board {
         }
     }
 
-    maxtrajectory(initialpos, newpos, piece, direction) {
+    maxtrajectory(initialpos, newpos, piece) {
         let operation = "";
         let differenceY = newpos[0] - initialpos[0];
         let differenceX = newpos[1] - initialpos[1];
@@ -303,6 +319,9 @@ class Chess extends Board {
     }
 
     validpos(initialpos, newpos, piece, direction) {
+        if (!this.position) {
+            direction = (direction == "w") ? "b" : "w";
+        }
         let distanceY = Math.abs(initialpos[0] - newpos[0]);
         let distanceX = Math.abs(initialpos[1] - newpos[1]);
         switch (piece) {
@@ -393,13 +412,18 @@ let nextsquare = false;
 let moveflag = false;
 
 const squares = document.querySelectorAll(".square");
-const chess = new Chess(squares);
+const chess = new Chess(squares, true);
 
 chess.display();
 
 squares.forEach(element => {
     element.addEventListener("click", () => {
         if (element.value == "" && !moveflag) {
+            return;
+        }
+
+        let wb = (turn) ? "w" : "b";
+        if (element.value[0] != wb && !moveflag) {
             return;
         }
         x = parseInt(element.getAttribute("row"));
