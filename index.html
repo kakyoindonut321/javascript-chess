@@ -3,68 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    />
+    <link rel="stylesheet" href="style.css" />
     <title>Chessboard</title>
-    <style>
-      .chessboard {
-        display: grid;
-        grid-template-columns: repeat(8, 50px);
-        grid-template-rows: repeat(8, 50px);
-        justify-content: center;
-      }
-
-      .chesssquare {
-        width: 50px;
-        height: 50px;
-        text-align: center;
-        line-height: 50px;
-        font-size: 20px;
-        box-sizing: border-box;
-      }
-
-      .chesssquare:hover {
-        /* box-shadow: inset 0 0 10px #f8a100; */
-        box-shadow: inset 0 0 1px 5px orange;
-      }
-
-      .black {
-        background-color: #769656;
-        color: white;
-      }
-
-      .white {
-        background-color: #eeeed2;
-      }
-
-      .on {
-        background-color: #0091ffaa;
-      }
-
-      .supercon {
-        display: flex;
-        justify-content: center;
-      }
-
-      .subcon {
-        width: calc(50px * 8);
-        position: relative;
-      }
-
-      .top-ruler {
-        display: flex;
-        justify-content: center;
-        gap: 40px;
-      }
-
-      .side-ruler {
-        position: absolute;
-        top: 0;
-        left: -20px;
-      }
-
-      .side-ruler p {
-        height: 34px;
-      }
-    </style>
   </head>
 
   <body>

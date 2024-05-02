@@ -1,3 +1,12 @@
+const correspondingPieces = {
+    p: "fa-chess-pawn",
+    r: "fa-chess-rook",
+    n: "fa-chess-knight",
+    b: "fa-chess-bishop",
+    q: "fa-chess-queen",
+    k: "fa-chess-king",
+};
+
 class Board {
     constructor(row = 8, column = 8) {
         this.row = 8;
@@ -123,8 +132,18 @@ class Chess extends Board {
         for (let squarec of this.displaysquares) {
             let srow = squarec.getAttribute("row");
             let scol = squarec.getAttribute("col");
-            squarec.textContent = this.array[srow][scol];
-            squarec.textContent = (squarec.textContent != "0") ? squarec.textContent : "";
+
+            let piecevalue = this.array[srow][scol]
+
+            squarec.value = piecevalue;
+            squarec.value = (squarec.value != "0") ? squarec.value : "";
+
+            squarec.innerHTML = "";
+            if (piecevalue[0] == "w") {
+                squarec.innerHTML = `<i class='whitepiece fa-solid ${correspondingPieces[piecevalue[1]]}'></i>`;
+            } else {
+                squarec.innerHTML = `<i class='fa-solid ${correspondingPieces[piecevalue[1]]}'></i>`;
+            }
         }
     }
 
@@ -380,7 +399,7 @@ chess.display();
 
 squares.forEach(element => {
     element.addEventListener("click", () => {
-        if (element.textContent == "" && !moveflag) {
+        if (element.value == "" && !moveflag) {
             return;
         }
         x = parseInt(element.getAttribute("row"));
@@ -398,14 +417,14 @@ squares.forEach(element => {
             secondcoor = [x, y];
             // disable all active square
             // run code
-            let result = chess.chessmove(prevsquare.textContent, firstcoor, secondcoor);
+            let result = chess.chessmove(prevsquare.value, firstcoor, secondcoor);
             if (result) {
                 nextsquare = element;
                 element.classList.add("on");
                 prevsquare.classList.remove("on");
                 moveflag = false;
             } else {
-                if (element.textContent != "") {
+                if (element.value != "") {
                     element.classList.add("on");
                     prevsquare.classList.remove("on");
                     firstcoor = [x, y];
