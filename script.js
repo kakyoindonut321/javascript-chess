@@ -42,7 +42,7 @@ class Board {
         if (row >= 0 && row < 8 && col >= 0 && col < 8) {
             return false;
         } else {
-            console.log("ERROR, coordinates out of bounds");
+            // console.log("ERROR, coordinates out of bounds");
             return true;
         }
     }
@@ -97,7 +97,9 @@ class Chess extends Board {
         // additional display
         this.turndisplay = document.querySelector(".turn");
 
+        this.piecehistory = ["a/n"];
         this.activatedpawn = [];
+        this.prevpawnlength = this.activatedpawn.length;
         this.eaten = [];
         this.displaysquares = displaysquares;
         this.position = position;
@@ -125,6 +127,8 @@ class Chess extends Board {
                 ["br", "bn", "bb", "bk", "bq", "bb", "bn", "br"],
             ];
         }
+
+        this.history = [this.encodeFEN(this.array)];
     }
 
     display() {
@@ -132,6 +136,10 @@ class Chess extends Board {
             console.log("ERROR, reference the display object first");
             return;
         }
+        // console.log(this.piecehistory);
+        // let encodedddfen = this.encodeFEN();
+        // console.log(encodedddfen);
+        // console.log(chess.decodeFEN(encodedddfen));
         this.turndisplay.textContent = (turn) ? "white to move" : "black to move";
 
         for (let squarec of this.displaysquares) {
@@ -187,10 +195,19 @@ class Chess extends Board {
                     console.log("can't eat your ally");
                     return false;
                 }
+                if (this.activatedpawn.length > this.prevpawnlength) {
+                    this.prevpawnlength = this.activatedpawn.length;
+                    this.piecehistory.push(`a${piece}`);
+                } else {
+                    this.piecehistory.push(piece);
+                }
+                // the right condition -------------------------------
                 this.move(firstcor, seccor);
+                this.history.push(this.encodeFEN(this.array));
                 turn = !turn;
                 this.display();
                 return true;
+                // ---------------------------------------------------
             } else {
                 console.log("blocked");
                 return false;
@@ -327,12 +344,19 @@ class Chess extends Board {
         switch (piece) {
             case "p":
                 let distanceP = initialpos[0] - newpos[0];
-                // pawn record, this will then be used for en passant
                 let maxtravelpawn = (this.activatedpawn.includes(`${direction}${piece}${initialpos[1]}`)) ? 1 : 2;
                 if (distanceY > maxtravelpawn || distanceX > 1) {
                     return false;
                 } else if (distanceX != 0 && distanceY == 1) {
                     if (direction == "w") {
+                        // en passant
+                        let ensp = this.array[newpos[0] + 1][newpos[1]];
+                        if (ensp != 0) {
+                            if (this.activatedpawn.includes(`${ensp}${newpos[1]}`)) {
+                                this.delete(newpos[0] + 1, newpos[1]);
+                                return true;
+                            }
+                        }
                         if (this.array[newpos[0]][newpos[1]] != 0) return true;
                         else return false;
                     } else {
@@ -347,7 +371,9 @@ class Chess extends Board {
                         if (distanceP > 0) return false;
                     }
                     // console.log(`${direction}${piece}${initialpos[1]}`);
-                    this.activatedpawn.push(`${direction}${piece}${initialpos[1]}`);
+                    if (!this.activatedpawn.includes(`${direction}${piece}${initialpos[1]}`)) {
+                        this.activatedpawn.push(`${direction}${piece}${initialpos[1]}`);
+                    }
                     return true;
                 } else {
                     return false;
@@ -396,12 +422,156 @@ class Chess extends Board {
         }
     }
 
+    findpiece(name) {
+        let idrow;
+        let idcol;
+        for (let fi = 0; fi < this.array.length; fi++) {
+            if (this.array[fi].indexOf(name) != -1) {
+                idcol = this.array[fi].indexOf(name);
+                idrow = fi;
+                break;
+            }
+        }
+        return [idrow, idcol];
+    }
+
+    matedetect(direction) {
+        let activatedsquare = [];
+        let enemy = (direction == "w") ? "b" : "w";
+        let nextpos;
+        let firstpos;
+        for (let ud = 0; ud < this.array.length; ud++) {
+            for (let dd = 0; dd < this.array[ud].length; dd++) {
+                let eachoter = this.array[ud][dd];
+                if (eachoter != 0) {
+                    if (eachoter[0] == enemy) {
+                        for (let ur = 0; ur < this.array.length; ur++) {
+                            for (let dr = 0; dr < this.array[ur].length; dr++) {
+                                firstpos = [ud, dd];
+                                nextpos = [ur, dr];
+                                let validity = this.validpos(firstpos, nextpos, eachoter[1], eachoter[0]);
+                                let trajectory = this.maxtrajectory(firstpos, nextpos, eachoter[1]);
+                                let eaten = this.eat(nextpos, eachoter[0]);
+                                if (validity && trajectory && eaten) {
+                                    let actived = nextpos.join();
+                                    if (!activatedsquare.includes(actived)) {
+                                        activatedsquare.push(actived);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        this.activatedpawn = [];
+        let kingcoor = this.findpiece(`${direction}k`);
+        let bbox = [kingcoor[0] - 1, kingcoor[1] - 1];
+        let itbb;
+        for (let bb = 0; bb < 3; bb++) {
+            for (let bd = 0; bd < 3; bd++) {
+                itbb = [bbox[0] + bb, bbox[1] + bd];
+                if (this.outofbound(...itbb)) continue;
+                if (activatedsquare.includes(itbb.join())) {
+                    console.log("check or checkmate");
+                }
+            }
+        }
+        return activatedsquare;
+    }
+
     eat(newpos, direction) {
         // let turnconverter = (direction == "w") ? true : false;
         let enemy = this.get(...newpos);
         if (enemy[0] != direction) return true;
         else return false;
     }
+
+    encodeFEN() {
+        let fen = '';
+        let emptycounter = 0;
+        let isemptybefore = false;
+        for (let fenR = 0; fenR < this.array.length; fenR++) {
+            for (let fenC = 0; fenC < this.array[fenR].length; fenC++) {
+                let coor = this.array[fenR][fenC];
+                if (coor != 0) {
+                    if (isemptybefore) {
+                        fen += emptycounter;
+                        emptycounter = 0;
+                        isemptybefore = false;
+                    }
+                    if (coor[0] == "w") {
+                        fen += coor[1].toUpperCase();
+                    } else {
+                        fen += coor[1]
+                    }
+                } else {
+                    emptycounter += 1;
+                    if (fenC > 6) {
+                        fen += emptycounter;
+                        emptycounter = 0;
+                        isemptybefore = false;
+                        continue;
+                    }
+                    isemptybefore = true;
+                }
+            }
+            fen += "/";
+        }
+        fen = fen.substring(0, fen.length - 1);
+
+        fen += (turn) ? " w" : " b";
+
+        return fen;
+    }
+
+    decodeFEN(fen) {
+        const splittedfen = fen.split(" ");
+        const eachrowfen = splittedfen[0].split("/");
+        let newfen = [];
+        const eightbyeight = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0]
+        ];
+        for (let rowsofen of eachrowfen) {
+            let placementfen = "";
+            if (rowsofen.length > 7) {
+                newfen.push(rowsofen);
+                continue;
+            }
+            for (let effen = 0; effen < rowsofen.length; effen++) {
+                let charff = rowsofen[effen];
+                if (isNaN(parseInt(charff))) {
+                    placementfen += charff;
+                } else {
+                    for (let ddccc = 0; ddccc < charff; ddccc++) {
+                        placementfen += "0";
+                    }
+                }
+            }
+            newfen.push(placementfen);
+        }
+        for (let dcf = 0; dcf < eightbyeight.length; dcf++) {
+            for (let fcf = 0; fcf < eightbyeight[dcf].length; fcf++) {
+                let chalice = newfen[dcf][fcf];
+                if (isNaN(parseInt(chalice))) {
+                    if (chalice == chalice.toUpperCase()) {
+                        eightbyeight[dcf][fcf] = `w${chalice.toLowerCase()}`;
+                    } else {
+                        eightbyeight[dcf][fcf] = `b${chalice}`;
+                    }
+                }
+            }
+        }
+        return eightbyeight;
+    }
+
 }
 
 let turn = true;
@@ -411,8 +581,17 @@ let prevsquare = false;
 let nextsquare = false;
 let moveflag = false;
 
+
+const undo = document.querySelector(".undo");
+const redo = document.querySelector(".redo");
 const squares = document.querySelectorAll(".square");
 const chess = new Chess(squares, true);
+
+// undoing
+let pointer = 0;
+let countdo = 0;
+let movemepawn = [];
+
 
 chess.display();
 
@@ -443,6 +622,17 @@ squares.forEach(element => {
             // run code
             let result = chess.chessmove(prevsquare.value, firstcoor, secondcoor);
             if (result) {
+                // if all succeed
+                // check if already undo
+                if (countdo > 0) {
+                    let tmplastval = [chess.history.at(-1), chess.piecehistory.at(-1)]
+                    chess.history = rm_arr(chess.history, pointer);
+                    chess.piecehistory = rm_arr(chess.piecehistory, pointer);
+                    chess.history.push(tmplastval[0]);
+                    chess.piecehistory.push(tmplastval[1]);
+                    countdo = 0;
+                    pointer = chess.piecehistory.length - 1;
+                }
                 nextsquare = element;
                 element.classList.add("on");
                 prevsquare.classList.remove("on");
@@ -460,12 +650,60 @@ squares.forEach(element => {
         // console.log(element.getAttribute("row"), element.getAttribute("col"));
     })
 });
+
+
+undo.addEventListener("click", () => {
+    countdo += 1;
+    pointer = chess.history.length - 1 - countdo;
+    if (chess.history.length > 1 && pointer > -1) {
+        chess.replace_board(chess.decodeFEN(chess.history[pointer]));
+        if (chess.piecehistory[pointer][0] == "a") {
+            movemepawn.push(chess.activatedpawn.at(-1))
+            chess.activatedpawn.pop();
+        }
+        // console.log("pointer is", pointer)
+        // console.log("history is", chess.history.length);
+        turn = !turn;
+        chess.display();
+    } else {
+        countdo -= 1;
+    }
+});
+redo.addEventListener("click", () => {
+    countdo -= 1;
+    pointer = chess.history.length - 1 - countdo;
+    if (chess.history.length > pointer && pointer > -1) {
+        chess.replace_board(chess.decodeFEN(chess.history[pointer]));
+        if (chess.piecehistory[pointer][0] == "a") {
+            chess.activatedpawn.push(chess.activatedpawn.at(-1))
+            movemepawn.pop();
+        }
+        console.log(countdo);
+        // console.log("pointer is", pointer)
+        // console.log("history is", chess.history.length);
+        turn = !turn;
+        chess.display();
+    } else {
+        countdo += 1;
+    }
+});
 // chess.console_display_board();
 
+// let encodd = chess.encodeFEN();
+// let cddo = chess.decodeFEN(encodd);
+// console.log(encodd);
+// console.log(cddo);
 
-
-
+// let detection = chess.matedetect("w");
 
 function algebraic_conversion() {
 
+}
+
+function rm_arr(subjecttedarr, index) {
+    if (index >= 0 && index < subjecttedarr.length) {
+        return subjecttedarr.slice(0, index + 1);
+    } else {
+        return subjecttedarr;
+    }
 }

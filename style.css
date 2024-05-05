@@ -36,7 +36,7 @@ body {
 }
 
 .on {
-    background-color: #006cbeaa;
+    background-color: #008bf5aa;
 }
 
 .supercon {
@@ -67,6 +67,34 @@ body {
     height: 34px;
 }
 
+.bottom-nav {
+    display: flex;
+    justify-content: space-between;
+}
+
 .turn {
     color: #eeeeee;
+}
+
+.timeline-but {
+    margin: 1em;
+}
+
+.timeline-but button {
+    width: 40px;
+    color: white;
+    /* height: 20px; */
+    border: 2px solid #303030;
+    border-radius: 10px;
+    background-color: #ffffff00;
+    padding: 0;
+    font-size: 25px;
+}
+
+.timeline-but button:hover {
+    background-color: #ffffff20;
+}
+
+.timeline-but button:active {
+    background-color: #ffffff00;
 }
